@@ -8,8 +8,10 @@ sources:
       con errores introducidos a propósito; se tipan y limpian en staging y silver.
     # La base de datos sale de la variable de entorno: DEV_BRONZE_DB en desarrollo, PRO_BRONZE_DB en producción
     database: "{{ env_var('DBT_BRONZE_DB') }}"
+
     schema: SET_UP
-    loaded_at_field: _loaded_at
+    config:
+      loaded_at_field: _loaded_at
 
     tables:
       - name: tabla_cruda
