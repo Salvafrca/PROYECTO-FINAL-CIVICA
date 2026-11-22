@@ -22,7 +22,7 @@ preparado as (
     select
         *,
         trim(fecha)               as fecha_txt,
-        lower(trim(tiempo_total)) as tiempo_txt
+        regexp_replace(lower(trim(tiempo_total)), '^([0-9]{1,2})[.]([0-9]{2})[.]([0-9]{2})$', '\\1:\\2:\\3') as tiempo_txt
     from origen
 
 ),
@@ -101,10 +101,18 @@ renombrado as (
         trim(modelo)                                    as modelo,
         {{ limpiar_enum('clase') }}                     as clase,
         nullif(trim(marca), '')                         as marca,
-        case                                                                      -- '1/8' -> 8
-            when escala like '%/%' then try_to_number(trim(split_part(escala, '/', 2)))
-            else {{ limpiar_numero('escala', 0) }}
+
+        case
+            when escala rlike '.*[/:].*'                                          -- '1/8' o '1:8' -> 8
+                then try_to_number(regexp_substr(trim(escala), '[0-9]+$'))
+            when {{ limpiar_numero('escala', 3) }} > 0
+             and {{ limpiar_numero('escala', 3) }} < 1                             -- '0.125' -> 8
+                then round(1 / {{ limpiar_numero('escala', 3) }})
+            else {{ limpiar_numero('escala', 0) }}                                 -- '8' -> 8
         end                                             as escala,
+
+
+
         {{ limpiar_numero('anio_produccion', 0) }}      as anio_produccion,
         {{ limpiar_enum('motorizacion') }}              as motorizacion,
 
