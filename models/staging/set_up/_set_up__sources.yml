@@ -1,0 +1,116 @@
+version: 2
+
+sources:
+  - name: set_up
+    description: >
+      Tablón crudo del dataset de set-ups de automodelismo TT 1/8, cargado
+      desde el CSV con COPY INTO. Todas las columnas llegan como VARCHAR y
+      con errores introducidos a propósito; se tipan y limpian en staging y silver.
+    # La base de datos sale de la variable de entorno: DEV_BRONZE_DB en desarrollo, PRO_BRONZE_DB en producción
+    database: "{{ env_var('DBT_BRONZE_DB') }}"
+    schema: SET_UP
+    loaded_at_field: _loaded_at
+
+    tables:
+      - name: tabla_cruda
+        identifier: TABLA_CRUDA
+        description: >
+          Una fila por set-up: un coche (piloto) en una carrera, con las
+          condiciones de ese día y su resultado. 25.250 filas.
+        columns:
+          # --- Resultado ---
+          - name: id_resultado
+            description: Identificador del resultado (coche en una carrera).
+            tests:
+              - not_null:
+                  config:
+                    severity: warn
+          # --- Carrera ---
+          - name: id_carrera
+            description: Identificador de la carrera.
+          - name: fecha
+            description: Fecha de la carrera, en formatos mezclados (se unifica a YYYY-MM-DD).
+          - name: numero_vueltas
+            description: Número de vueltas de la carrera.
+          - name: numero_pilotos
+            description: Número de pilotos participantes.
+          - name: vuelta_promedio
+            description: Vuelta media de la carrera. Dato derivado; no pasa a silver.
+          - name: temperatura
+            description: Temperatura (se convierte a grados Celsius).
+          - name: humedad
+            description: Humedad en porcentaje.
+          - name: condicion
+            description: "Condición de la pista: Lluvia, Llovizna, Secandose, Seco."
+          - name: viento
+            description: Velocidad del viento en m/s.
+          # --- Club ---
+          - name: id_club
+            description: Identificador del club que organiza la carrera.
+          - name: nombre_club
+            description: Nombre del club.
+          - name: numero_socios
+            description: Número de socios del club.
+          - name: numero_curvas
+            description: Número de curvas del circuito.
+          - name: numero_saltos
+            description: Número de saltos del circuito.
+          - name: superficie
+            description: "Superficie del circuito: Tierra, Asfalto, Moqueta."
+          - name: longitud
+            description: Longitud del circuito (se convierte a metros).
+          # --- Piloto ---
+          - name: id_piloto
+            description: Identificador del piloto.
+          - name: licencia
+            description: Número de licencia del piloto.
+          - name: nombre_piloto
+            description: Nombre del piloto.
+          - name: email
+            description: Email del piloto.
+          - name: telefono
+            description: Teléfono del piloto.
+          - name: club_piloto
+            description: Club al que pertenece el piloto (nulo = independiente).
+          - name: maleta
+            description: "Tipo de maleta: Ruedas, Portatil, Otra."
+          - name: mecanico
+            description: true = tiene mecánico, false = no tiene mecánico.
+          # --- Coche y modelo ---
+          - name: id_coche
+            description: Identificador del coche.
+          - name: estado
+            description: "Estado del coche: Nuevo, Usado, Viejo."
+          - name: id_modelo
+            description: Identificador del modelo de coche.
+          - name: modelo
+            description: Nombre del modelo.
+          - name: clase
+            description: "Clase del coche: Buggy, Truggy."
+          - name: marca
+            description: Marca del modelo.
+          - name: escala
+            description: Denominador N de la escala 1/N (8 = 1/8).
+          - name: anio_produccion
+            description: Año de producción del modelo.
+          - name: motorizacion
+            description: "Motorización: Gasolina, Electrico."
+          # --- Set-up ---
+          - name: neumatico
+            description: "Neumático: Blando, Medio, Duro."
+          - name: grosor_muelle
+            description: Grosor del muelle en mm.
+          - name: altura_chasis
+            description: Altura del chasis en cm.
+          - name: contrapesos
+            description: true = lleva contrapesos, false = no lleva (por defecto false).
+          - name: densidad_silicona_diferencial
+            description: Densidad de la silicona del diferencial en cSt.
+          - name: grado_inclinacion_aleron
+            description: Inclinación del alerón en grados (0 a 90).
+          # --- Clasificación ---
+          - name: tiempo_total
+            description: Tiempo total de la carrera (se unifica a hh:mm:ss).
+          # --- Metadato de carga ---
+          - name: _loaded_at
+            description: Momento en que la fila llegó a bronze. Lo rellena Snowflake en la carga.
