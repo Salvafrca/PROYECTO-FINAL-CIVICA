@@ -1,0 +1,258 @@
+version: 2
+
+# =====================================================================
+# Tests de silver.
+# Los mismos controles que en staging salían como aviso (warn) aquí son
+# ERROR: si la limpieza funciona, deben pasar todos.
+# Además se comprueban claves (PK únicas, CC únicas) y relaciones (FK).
+# =====================================================================
+
+models:
+
+  # -------------------------------------------------------------------
+  - name: int_set_up__limpio
+    description: >
+      Set-ups con las reglas de limpieza fila a fila aplicadas y sin duplicados
+      (por cada id_resultado se conserva la versión más rica en información).
+    columns:
+      - name: id_resultado
+        data_tests: [unique, not_null]
+
+  # -------------------------------------------------------------------
+  - name: slv_club
+    description: Un club organizador con su circuito. Atributos por moda de sus filas.
+    columns:
+      - name: id_club
+        description: Clave subrogada (hash de id_club_origen).
+        data_tests: [unique, not_null]
+      - name: id_club_origen
+        description: Clave natural del sistema origen.
+        data_tests: [unique, not_null]
+      - name: nombre
+        description: Clave candidata.
+        data_tests: [unique, not_null]
+      - name: numero_socios
+        data_tests: [not_null]
+      - name: superficie
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Tierra', 'Asfalto', 'Moqueta']
+      - name: longitud
+        description: Longitud del circuito en metros.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 50
+                max_value: 1000
+
+  # -------------------------------------------------------------------
+  - name: slv_modelo
+    description: Un modelo de coche. Atributos por moda de sus filas.
+    columns:
+      - name: id_modelo
+        data_tests: [unique, not_null]
+      - name: modelo
+        description: Clave candidata.
+        data_tests: [unique, not_null]
+      - name: clase
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Buggy', 'Truggy']
+      - name: escala
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [8]
+                quote: false
+      - name: anio_produccion
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 2000
+                max_value: 2026
+      - name: motorizacion
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Gasolina', 'Electrico']
+
+  # -------------------------------------------------------------------
+  - name: slv_piloto
+    description: Un piloto. Atributos por moda de sus filas; id_club NULL = independiente.
+    data_tests:
+      # Si el piloto tiene club, el nombre tiene que haber encontrado su club en slv_club
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "not (nombre_club_piloto is not null and id_club is null)"
+          config:
+            severity: warn
+    columns:
+      - name: id_piloto
+        data_tests: [unique, not_null]
+      - name: licencia
+        description: Clave candidata (licencia federativa).
+        data_tests: [unique, not_null]
+      - name: nombre
+        data_tests: [not_null]
+      - name: email
+        data_tests: [not_null]
+      - name: telefono
+        data_tests: [not_null]
+      - name: id_club
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('slv_club')
+                field: id_club
+      - name: maleta
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Ruedas', 'Portatil', 'Otra']
+      - name: mecanico
+        data_tests: [not_null]
+
+  # -------------------------------------------------------------------
+  - name: slv_coche
+    description: Un coche (modelo concreto de un piloto). Estado por moda (no varía en la temporada).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['id_piloto', 'id_modelo']
+    columns:
+      - name: id_coche
+        data_tests: [unique, not_null]
+      - name: id_piloto
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('slv_piloto')
+                field: id_piloto
+      - name: id_modelo
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('slv_modelo')
+                field: id_modelo
+      - name: estado
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Nuevo', 'Usado', 'Viejo']
+
+  # -------------------------------------------------------------------
+  - name: slv_carrera
+    description: Una carrera (club + fecha). Meteorología por moda de sus filas.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['id_club', 'fecha']
+    columns:
+      - name: id_carrera
+        data_tests: [unique, not_null]
+      - name: id_club
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('slv_club')
+                field: id_club
+      - name: fecha
+        data_tests: [not_null]
+      - name: numero_vueltas
+        data_tests: [not_null]
+      - name: numero_pilotos
+        data_tests: [not_null]
+      - name: temperatura
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: -15
+                max_value: 50
+      - name: humedad
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+      - name: viento
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: condicion
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Lluvia', 'Llovizna', 'Secandose', 'Seco']
+
+  # -------------------------------------------------------------------
+  - name: slv_resultado
+    description: El set-up de un coche en una carrera y su tiempo. Admite NULL en los atributos no recuperables.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['id_carrera', 'id_coche']
+    columns:
+      - name: id_resultado
+        data_tests: [unique, not_null]
+      - name: id_carrera
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('slv_carrera')
+                field: id_carrera
+      - name: id_coche
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('slv_coche')
+                field: id_coche
+      - name: neumatico
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Blando', 'Medio', 'Duro']
+      - name: grosor_muelle
+        description: Grosor del muelle en mm.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0.5
+                max_value: 5
+      - name: altura_chasis
+        description: Altura del chasis en cm.
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 10
+      - name: contrapesos
+        data_tests: [not_null]
+      - name: densidad_silicona_diferencial
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: grado_inclinacion_aleron
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 90
