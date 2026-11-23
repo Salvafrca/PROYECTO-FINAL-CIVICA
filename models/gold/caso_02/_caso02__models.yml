@@ -1,0 +1,65 @@
+version: 2
+
+models:
+  - name: dim_caso02_piloto
+    description: Pilotos y si tienen mecánico (caso 2).
+    columns:
+      - name: key_piloto
+        data_tests: [unique, not_null]
+      - name: tiene_mecanico
+        data_tests: [not_null]
+
+  - name: dim_caso02_coche
+    description: Coches con su estado y si son viejos (caso 2).
+    columns:
+      - name: key_coche
+        data_tests: [unique, not_null]
+      - name: es_viejo
+        data_tests: [not_null]
+
+  - name: dim_caso02_carrera
+    description: Carreras con fecha y circuito (caso 2).
+    columns:
+      - name: key_carrera
+        data_tests: [unique, not_null]
+
+  - name: fct_caso02_resultado
+    description: Posición de un piloto en una carrera y si hizo podio (caso 2).
+    data_tests:
+      # Cada carrera tiene exactamente un 1º, un 2º y un 3º
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['key_carrera', 'posicion']
+    columns:
+      - name: key_resultado
+        data_tests: [unique, not_null]
+      - name: key_carrera
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_caso02_carrera')
+                field: key_carrera
+      - name: key_coche
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_caso02_coche')
+                field: key_coche
+      - name: key_piloto
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_caso02_piloto')
+                field: key_piloto
+      - name: posicion
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+
+  - name: agg_caso02_podio
+    description: Respuesta del caso 2. Tasa de podio con y sin cada factor y diferencia en puntos.
+    columns:
+      - name: factor
+        data_tests: [unique, not_null]

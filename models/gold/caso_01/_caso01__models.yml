@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: dim_caso01_club
+    description: Clubes con su superficie (caso 1).
+    columns:
+      - name: key_club
+        data_tests: [unique, not_null]
+      - name: superficie
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Tierra', 'Asfalto', 'Moqueta']
+
+  - name: dim_caso01_carrera
+    description: Carreras con fecha y condiciones meteorológicas (caso 1).
+    columns:
+      - name: key_carrera
+        data_tests: [unique, not_null]
+
+  - name: fct_caso01_resultado
+    description: Tiempo de un piloto en una carrera, con su vuelta media y la de la carrera (caso 1).
+    columns:
+      - name: key_resultado
+        data_tests: [unique, not_null]
+      - name: key_carrera
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_caso01_carrera')
+                field: key_carrera
+      - name: key_club
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_caso01_club')
+                field: key_club
+      - name: vuelta_media_seg
+        description: Tiempo total / número de vueltas, en segundos.
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                inclusive: false
+      - name: es_rapido
+        data_tests: [not_null]
+
+  - name: agg_caso01_neumatico_tierra_lluvia
+    description: Respuesta del caso 1. Pilotos rápidos por neumático en carreras de tierra con lluvia.
+    columns:
+      - name: neumatico
+        data_tests: [unique, not_null]
