@@ -67,7 +67,8 @@ reglas as (
 
         -- ---------- Piloto
         case
-            when lower(nombre_club_piloto) = 'independiente' then null        -- NULL = independiente
+            when lower(trim(nombre_club_piloto)) in ('independiente', '-', '--', 'n/a', 'ninguno', 'sin club')
+                then null                                                     -- NULL = independiente
             else nombre_club_piloto
         end                                                                   as nombre_club_piloto,
         case when maleta in ('Ruedas', 'Portatil', 'Otra') then maleta end    as maleta,
