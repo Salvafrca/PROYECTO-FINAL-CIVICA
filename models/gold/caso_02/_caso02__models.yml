@@ -63,3 +63,19 @@ models:
     columns:
       - name: factor
         data_tests: [unique, not_null]
+
+  - name: agg_caso02_podio_cruzado
+    description: >
+      Caso 2, tabla 2x2 (mecánico × coche viejo). Tasa de podio de cada grupo y efecto
+      de cada factor manteniendo fijo el otro.
+    data_tests:
+      # Exactamente una fila por casilla de la tabla 2x2
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['tiene_mecanico', 'coche_no_viejo']
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "tasa_podio_pct between 0 and 100"
+    columns:
+      - name: participaciones
+        data_tests: [not_null]
