@@ -1,0 +1,175 @@
+version: 2
+
+# =====================================================================
+# Tests de staging.
+# Staging solo cambia el formato, así que los errores del dato siguen aquí.
+#   - severity: error -> lo que staging SÍ garantiza (si falla, el modelo está mal).
+#   - severity: warn  -> errores conocidos del CSV que corrige silver.
+#     Los avisos documentan cuántas filas hay que limpiar.
+# =====================================================================
+
+models:
+  - name: stg_set_up__tabla_cruda
+    description: >
+      Tablón de set-ups con cada columna en su tipo, renombrada y con formato
+      homogéneo. 1:1 con bronze: no filtra, no deduplica y no corrige valores.
+    data_tests:
+      # Nada se pierde ni se duplica entre bronze y staging
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: source('set_up', 'tabla_cruda')
+
+    columns:
+      # ---------------- Claves de origen
+      - name: id_resultado
+        description: Identificador del resultado. Tiene duplicados conocidos (se quitan en silver).
+        data_tests:
+          - not_null
+          - unique:
+              config:
+                severity: warn
+      - name: id_carrera
+        data_tests: [not_null]
+      - name: id_club
+        data_tests: [not_null]
+      - name: id_piloto
+        data_tests: [not_null]
+      - name: id_coche
+        data_tests: [not_null]
+      - name: id_modelo
+        data_tests: [not_null]
+
+      # ---------------- Carrera
+      - name: fecha_carrera
+        description: Fecha de la carrera unificada a DATE desde 5 formatos posibles.
+        data_tests:
+          - not_null
+      - name: temperatura
+        description: Temperatura tal como viene (grados centígrados salvo errores).
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: -15
+                max_value: 50
+              config:
+                severity: warn
+      - name: humedad
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+              config:
+                severity: warn
+      - name: viento
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+              config:
+                severity: warn
+      - name: condicion_meteo
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+          - accepted_values:
+              arguments:
+                values: ['Lluvia', 'Llovizna', 'Secandose', 'Seco']
+              config:
+                severity: warn
+
+      # ---------------- Club
+      - name: superficie
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Tierra', 'Asfalto', 'Moqueta']
+              config:
+                severity: warn
+
+      # ---------------- Piloto
+      - name: licencia
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: maleta
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Ruedas', 'Portatil', 'Otra']
+              config:
+                severity: warn
+      - name: tiene_mecanico
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+
+      # ---------------- Coche y modelo
+      - name: estado_coche
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Nuevo', 'Usado', 'Viejo']
+              config:
+                severity: warn
+      - name: clase
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Buggy', 'Truggy']
+              config:
+                severity: warn
+      - name: escala
+        description: Denominador de la escala 1/N. Todos los coches del proyecto son 1/8.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [8]
+                quote: false
+              config:
+                severity: warn
+      - name: anio_produccion
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 2000
+                max_value: 2026
+              config:
+                severity: warn
+      - name: motorizacion
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Gasolina', 'Electrico']
+              config:
+                severity: warn
+
+      # ---------------- Set-up
+      - name: neumatico
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Blando', 'Medio', 'Duro']
+              config:
+                severity: warn
+      - name: grado_inclinacion_aleron
+        description: Inclinación del alerón en grados sexagesimales (0 a 90).
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 90
+              config:
+                severity: warn
+
+      # ---------------- Resultado
+      - name: tiempo_total
+        description: Tiempo total unificado a TIME desde hh:mm:ss, hh.mm.ss, mm:ss o segundos.
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
