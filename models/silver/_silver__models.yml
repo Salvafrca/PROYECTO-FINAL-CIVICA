@@ -255,3 +255,7 @@ models:
               arguments:
                 min_value: 0
                 max_value: 90
+      - name: _loaded_at
+        description: Momento en que la fila llegó a bronze (lo pone Snowflake). Lo usa el filtro incremental.
+        data_tests:
+          - not_null

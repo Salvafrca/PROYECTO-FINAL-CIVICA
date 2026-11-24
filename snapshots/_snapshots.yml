@@ -1,0 +1,32 @@
+# =====================================================================
+# Snapshots (Día 5): historia de cambios (SCD tipo 2).
+# piloto_snapshot guarda cada versión de un piloto: si cambia de club,
+# contrata mecánico o cambia de email, se cierra la versión antigua
+# (dbt_valid_to) y se abre una nueva (dbt_valid_from).
+# strategy check: slv_piloto no tiene columna fiable de última
+# modificación (updated_at), así que dbt compara las columnas de check_cols.
+# =====================================================================
+snapshots:
+  - name: piloto_snapshot
+    relation: ref('slv_piloto')
+    description: >
+      Historia (SCD tipo 2) de los atributos de cada piloto que pueden
+      cambiar con el tiempo. La versión vigente tiene dbt_valid_to nulo.
+    config:
+      unique_key: id_piloto
+      strategy: check
+      check_cols: ['licencia', 'email', 'telefono', 'id_club', 'maleta', 'mecanico']
+      hard_deletes: new_record
+    columns:
+      - name: dbt_scd_id
+        description: Identificador único de cada versión.
+        data_tests:
+          - unique
+          - not_null
+      - name: id_piloto
+        description: Clave del piloto (hash). Se repite una vez por versión.
+        data_tests:
+          - not_null
+          - unique:
+              config:
+                where: "dbt_valid_to is null"   # una sola versión vigente por piloto

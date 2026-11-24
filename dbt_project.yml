@@ -52,3 +52,12 @@ models:
       caso_02:
         +schema: caso_02
         +tags: ['caso_02']    # mecánico frente a coche nuevo para hacer podio
+
+# Snapshots: en silver, esquema propio. transient: false para que tengan
+# Fail-safe: su historia no se puede reconstruir desde bronze (Día 5).
+snapshots:
+  proyecto_automodelismo:
+    +database: "{{ env_var('DBT_SILVER_DB') }}"
+    +schema: snapshots
+    +transient: false
+    +tags: ['snapshot']

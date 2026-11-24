@@ -138,4 +138,6 @@ puntuado as (
 
 select * exclude (calidad)
 from puntuado
-qualify row_number() over (partition by id_resultado order by calidad desc) = 1
+-- Entre versiones igual de ricas, gana la que llegó más tarde a bronze
+-- (además hace la elección determinista y la necesita el incremental de slv_resultado)
+qualify row_number() over (partition by id_resultado order by calidad desc, _loaded_at desc) = 1
