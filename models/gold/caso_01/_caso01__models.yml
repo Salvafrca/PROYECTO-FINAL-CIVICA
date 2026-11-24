@@ -19,7 +19,11 @@ models:
         data_tests: [unique, not_null]
 
   - name: fct_caso01_resultado
-    description: Tiempo de un piloto en una carrera, con su vuelta media y la de la carrera (caso 1).
+    # NUEVO: se explica el incremental en la descripción
+    description: >
+      Tiempo de un piloto en una carrera, con su vuelta media y la de la carrera (caso 1).
+      Incremental delete+insert por carrera: si llega un set-up nuevo o corregido se recalcula
+      su carrera entera (la vuelta media de la carrera depende de todos sus pilotos).
     columns:
       - name: key_resultado
         data_tests: [unique, not_null]
@@ -46,6 +50,9 @@ models:
                 min_value: 0
                 inclusive: false
       - name: es_rapido
+        data_tests: [not_null]
+      # NUEVO: cuándo llegó el set-up a bronze (filtro del incremental)
+      - name: _loaded_at
         data_tests: [not_null]
 
   - name: agg_caso01_neumatico_tierra_lluvia
