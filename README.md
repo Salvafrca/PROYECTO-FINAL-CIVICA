@@ -146,23 +146,28 @@ A driver is **fast** when their average lap time is lower than the average lap t
 
 ```
 PROYECTO-FINAL-CIVICA/
-├── README.md
-├── snowflake/          # SQL scripts: environment, bronze ingestion and incremental walkthrough
-├── dbt/                # dbt project
-│   ├── models/
-│   │   ├── staging/set_up/
-│   │   ├── silver/     # int_set_up__limpio + 6 slv_ tables
-│   │   └── gold/
-│   │       ├── caso_01/
-│   │       └── caso_02/
-│   ├── snapshots/      # piloto_snapshot
-│   ├── macros/         # limpieza_staging.sql, generate_schema_name.sql
-│   ├── dbt_project.yml
-│   └── packages.yml    # dbt_utils
-├── data/               # Source CSV
+├── analyses/           # Ad-hoc analysis queries
+├── macros/             # limpieza_staging.sql, generate_schema_name.sql
+├── models/
+│   ├── staging/set_up/ # stg_set_up__tabla_cruda
+│   ├── silver/         # int_set_up__limpio + 6 slv_ tables
+│   └── gold/
+│       ├── caso_01/    # Star schema for use case 1 (tyre)
+│       └── caso_02/    # Star schema for use case 2 (podium)
+├── seeds/              # dbt seeds
+├── snapshots/          # piloto_snapshot (SCD type 2)
+├── tests/              # Singular tests
 ├── powerbi/            # Power BI report (.pbix)
-└── docs/               # Project presentation and documentation
+├── docs/               # Project presentation
+├── .gitattributes
+├── .gitignore
+├── dbt_project.yml
+├── package-lock.yml
+├── packages.yml        # dbt_utils
+└── README.md
 ```
+
+> Bronze lives in Snowflake, outside dbt: `SET_UP.TABLA_CRUDA` is only read as a source.
 
 ---
 
@@ -170,7 +175,7 @@ PROYECTO-FINAL-CIVICA/
 
 1. In Snowflake, run `snowflake/CREACION_ENTORNO.sql` and then `snowflake/INGESTA_BRONCE.sql`.
 2. Set up the dbt connection to Snowflake (DEV and PRO environments).
-3. From the `dbt/` folder:
+3. From the repository root:
    ```bash
    dbt deps
    dbt build
